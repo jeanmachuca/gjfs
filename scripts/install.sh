@@ -69,7 +69,10 @@ install_from_source() {
 
     # Clone repository
     info "Cloning repository..."
-    git clone --depth 1 --branch "$VERSION" "https://github.com/$REPO.git" . 2>/dev/null || \
+    # Use SSH for private repos, fallback to HTTPS for public
+    git clone --depth 1 --branch "$VERSION" "git@github.com:$REPO.git" . 2>/dev/null || \
+        git clone --depth 1 "git@github.com:$REPO.git" . 2>/dev/null || \
+        git clone --depth 1 --branch "$VERSION" "https://github.com/$REPO.git" . 2>/dev/null || \
         git clone --depth 1 "https://github.com/$REPO.git" .
 
     # Build
