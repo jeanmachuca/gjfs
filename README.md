@@ -3,6 +3,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
+[![Sponsor](https://img.shields.io/badge/Sponsor-❤️-ff69b4.svg)](https://github.com/sponsors/jeanmachuca)
 
 **gjfs** is a command-line tool and Go library that generates JSON examples from JSON Schema. It's useful for testing, documentation, and API development.
 
@@ -14,6 +15,10 @@
 - 🔧 **Flexible output** - stdout, file, or as a library
 - 📦 **Zero dependencies** - Pure Go implementation
 - 🎨 **Format support** - email, uuid, date-time, uri, ipv4, ipv6, hostname, byte, password
+
+## Sponsor
+
+If you find this project useful, consider sponsoring my work on GitHub: [github.com/sponsors/jeanmachuca](https://github.com/sponsors/jeanmachuca)
 
 ## Installation
 
