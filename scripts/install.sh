@@ -88,16 +88,32 @@ install_binary() {
     local binary_path=$1
 
     # Determine install directory
-    if [ -w "/usr/local/bin" ]; then
-        INSTALL_DIR="/usr/local/bin"
-    elif [ -w "$HOME/.local/bin" ]; then
-        INSTALL_DIR="$HOME/.local/bin"
-    else
-        INSTALL_DIR="/usr/local/bin"
-        warn "Installing to $INSTALL_DIR requires sudo"
-        sudo install -m 755 "$binary_path" "$INSTALL_DIR/$BINARY"
-        info "Installed to $INSTALL_DIR/$BINARY (with sudo)"
-        return
+    INSTALL_DIR=""
+    for dir in "/usr/local/bin" "$HOME/.local/bin" "$HOME/go/bin" "${GOPATH}/bin" "$HOME/bin"; do
+        if [ -d "$dir" ] && [ -w "$dir" ]; then
+            INSTALL_DIR="$dir"
+            break
+        fi
+    done
+
+    # Fallback: create $HOME/go/bin if nothing writable found
+    if [ -z "$INSTALL_DIR" ]; then
+        INSTALL_DIR="$HOME/go/bin"
+        mkdir -p "$INSTALL_DIR" 2>/dev/null || true
+        if [ ! -w "$INSTALL_DIR" ]; then
+            INSTALL_DIR="/usr/local/bin"
+            if command -v sudo &>/dev/null; then
+                warn "Installing to $INSTALL_DIR requires sudo"
+                sudo install -m 755 "$binary_path" "$INSTALL_DIR/$BINARY"
+                info "Installed to $INSTALL_DIR/$BINARY (with sudo)"
+                return
+            else
+                warn "Cannot write to $INSTALL_DIR and sudo not available"
+                warn "Binary is at: $binary_path"
+                warn "Manually install with: install -m 755 '$binary_path' '/usr/local/bin/$BINARY'"
+                return
+            fi
+        fi
     fi
 
     install -m 755 "$binary_path" "$INSTALL_DIR/$BINARY"
