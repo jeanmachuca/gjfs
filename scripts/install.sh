@@ -83,12 +83,15 @@ install_from_source() {
     install_binary "$TMP_DIR/$BINARY"
 }
 
+INSTALL_DIR=""
+BINARY_PATH=""
+
 # Install binary
 install_binary() {
     local binary_path=$1
+    local dir=""
 
     # Determine install directory
-    INSTALL_DIR=""
     for dir in "/usr/local/bin" "$HOME/.local/bin" "$HOME/go/bin" "${GOPATH}/bin" "$HOME/bin"; do
         if [ -d "$dir" ] && [ -w "$dir" ]; then
             INSTALL_DIR="$dir"
@@ -105,19 +108,22 @@ install_binary() {
             if command -v sudo &>/dev/null; then
                 warn "Installing to $INSTALL_DIR requires sudo"
                 sudo install -m 755 "$binary_path" "$INSTALL_DIR/$BINARY"
-                info "Installed to $INSTALL_DIR/$BINARY (with sudo)"
+                BINARY_PATH="$INSTALL_DIR/$BINARY"
+                info "Installed to $BINARY_PATH (with sudo)"
                 return
             else
                 warn "Cannot write to $INSTALL_DIR and sudo not available"
                 warn "Binary is at: $binary_path"
                 warn "Manually install with: install -m 755 '$binary_path' '/usr/local/bin/$BINARY'"
+                BINARY_PATH="$binary_path"
                 return
             fi
         fi
     fi
 
     install -m 755 "$binary_path" "$INSTALL_DIR/$BINARY"
-    info "Installed to $INSTALL_DIR/$BINARY"
+    BINARY_PATH="$INSTALL_DIR/$BINARY"
+    info "Installed to $BINARY_PATH"
 
     # Check if install dir is in PATH
     if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
@@ -128,11 +134,11 @@ install_binary() {
 
 # Verify installation
 verify_installation() {
-    if command -v "$BINARY" &> /dev/null; then
-        info "Installation verified!"
-        "$BINARY" --version
+    if [ -f "$BINARY_PATH" ]; then
+        info "Installation verified at $BINARY_PATH!"
+        "$BINARY_PATH" --version
     else
-        error "Installation failed: $BINARY not found in PATH"
+        error "Installation failed: $BINARY_PATH not found"
     fi
 }
 
