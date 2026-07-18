@@ -147,27 +147,14 @@ Examples:
 		return
 	}
 
-	// Generate example
-	opts := []generator.GeneratorOption{
-		generator.WithStrictMode(strictMode),
-	}
-	if seed != 0 {
-		opts = append(opts, generator.WithSeed(seed))
+	// Handle tool manifest format
+	if sch.IsToolManifest() {
+		generateToolManifest(sch, seed, strictMode, outputFile)
+		return
 	}
 
-	// Add definitions from schema
-	if len(sch.Definitions) > 0 || len(sch.Defs) > 0 {
-		defs := make(map[string]*schema.Schema)
-		for k, v := range sch.Definitions {
-			defs[k] = v
-		}
-		for k, v := range sch.Defs {
-			defs[k] = v
-		}
-		opts = append(opts, generator.WithDefinitions(defs))
-	}
-
-	gen := generator.NewGenerator(opts...)
+	// Generate example for regular schema
+	gen := generator.NewGenerator(generatorOpts(seed, strictMode, sch)...)
 
 	var output []byte
 	if pretty {
@@ -194,6 +181,67 @@ Examples:
 			os.Exit(1)
 		}
 		fmt.Fprintf(os.Stderr, "Generated example written to %s\n", outputFile)
+	} else {
+		fmt.Println(string(output))
+	}
+}
+
+func generatorOpts(seed int64, strictMode bool, sch *schema.Schema) []generator.GeneratorOption {
+	opts := []generator.GeneratorOption{
+		generator.WithStrictMode(strictMode),
+	}
+	if seed != 0 {
+		opts = append(opts, generator.WithSeed(seed))
+	}
+	if len(sch.Definitions) > 0 || len(sch.Defs) > 0 {
+		defs := make(map[string]*schema.Schema)
+		for k, v := range sch.Definitions {
+			defs[k] = v
+		}
+		for k, v := range sch.Defs {
+			defs[k] = v
+		}
+		opts = append(opts, generator.WithDefinitions(defs))
+	}
+	return opts
+}
+
+func generateToolManifest(sch *schema.Schema, seed int64, strictMode bool, outputFile string) {
+	entries := sch.ToolSchemas()
+	if len(entries) == 0 {
+		fmt.Fprintf(os.Stderr, "Error: no tool schemas found in tool manifest\n")
+		os.Exit(1)
+	}
+
+	result := make(map[string]interface{})
+	for _, entry := range entries {
+		gen := generator.NewGenerator(generatorOpts(seed, strictMode, entry.Schema)...)
+		val, err := gen.Generate(entry.Schema)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to generate for %s %s: %v\n", entry.ToolName, entry.Kind, err)
+			continue
+		}
+
+		key := fmt.Sprintf("%s/%s", entry.ToolName, entry.Kind)
+		result[key] = map[string]interface{}{
+			"description": entry.ToolDescription,
+			"value":       val,
+		}
+	}
+
+	output, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marshaling tool manifest output: %v\n", err)
+		os.Exit(1)
+	}
+
+	if outputFile != "" && outputFile != "-" {
+		err = os.WriteFile(outputFile, output, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing output: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stderr, "Generated tool manifest examples written to %s\n", outputFile)
 	} else {
 		fmt.Println(string(output))
 	}

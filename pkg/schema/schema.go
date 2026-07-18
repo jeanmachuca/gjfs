@@ -62,6 +62,60 @@ type Schema struct {
 	Dependencies         map[string]interface{} `json:"dependencies,omitempty"`
 	DependentRequired    map[string][]string    `json:"dependentRequired,omitempty"`
 	DependentSchemas     map[string]*Schema     `json:"dependentSchemas,omitempty"`
+	Tools                []*Tool                `json:"tools,omitempty"`
+}
+
+// Tool represents an MCP tool definition with embedded input/output schemas
+type Tool struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	InputSchema *Schema `json:"inputSchema"`
+	OutputSchema *Schema `json:"outputSchema"`
+}
+
+// ToolSchemaKind indicates whether a tool schema is input or output
+type ToolSchemaKind string
+
+const (
+	ToolInputSchema  ToolSchemaKind = "inputSchema"
+	ToolOutputSchema ToolSchemaKind = "outputSchema"
+)
+
+// ToolSchemaEntry pairs a tool's schema with its metadata
+type ToolSchemaEntry struct {
+	ToolName        string
+	ToolDescription string
+	Kind           ToolSchemaKind
+	Schema         *Schema
+}
+
+// IsToolManifest returns true if this schema is a tool manifest (has tools array)
+func (s *Schema) IsToolManifest() bool {
+	return len(s.Tools) > 0
+}
+
+// ToolSchemas extracts all schemas from a tool manifest, one per input/output per tool
+func (s *Schema) ToolSchemas() []ToolSchemaEntry {
+	var entries []ToolSchemaEntry
+	for _, tool := range s.Tools {
+		if tool.InputSchema != nil {
+			entries = append(entries, ToolSchemaEntry{
+				ToolName:        tool.Name,
+				ToolDescription: tool.Description,
+				Kind:           ToolInputSchema,
+				Schema:         tool.InputSchema,
+			})
+		}
+		if tool.OutputSchema != nil {
+			entries = append(entries, ToolSchemaEntry{
+				ToolName:        tool.Name,
+				ToolDescription: tool.Description,
+				Kind:           ToolOutputSchema,
+				Schema:         tool.OutputSchema,
+			})
+		}
+	}
+	return entries
 }
 
 // ParseSchema parses a JSON schema from bytes
