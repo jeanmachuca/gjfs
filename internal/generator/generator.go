@@ -281,6 +281,28 @@ func (g *Generator) generateIfThenElse(ifSchema, thenSchema, elseSchema *schema.
 }
 
 func (g *Generator) generateString(s *schema.Schema) string {
+	if g.strictMode {
+		if s.GetConst() != nil {
+			if str, ok := s.GetConst().(string); ok {
+				return str
+			}
+		}
+		if len(s.GetEnum()) > 0 {
+			return s.GetEnum()[0].(string)
+		}
+		if s.GetDefault() != nil {
+			if str, ok := s.GetDefault().(string); ok {
+				return str
+			}
+		}
+		if s.HasExamples() {
+			if str, ok := s.GetExample().(string); ok {
+				return str
+			}
+		}
+		return ""
+	}
+
 	if s.GetConst() != nil {
 		if str, ok := s.GetConst().(string); ok {
 			return str
@@ -352,9 +374,11 @@ func (g *Generator) generateNumber(s *schema.Schema) interface{} {
 	isInteger := s.GetType() == "integer"
 	min := s.GetMinimum()
 	max := s.GetMaximum()
+	hasMin := s.Minimum != nil
+	hasMax := s.Maximum != nil
 
 	if g.strictMode {
-		if min != 0 {
+		if hasMin {
 			if isInteger {
 				return int64(min)
 			}
@@ -364,11 +388,11 @@ func (g *Generator) generateNumber(s *schema.Schema) interface{} {
 	}
 
 	var val float64
-	if min != 0 && max != 0 {
+	if hasMin && hasMax {
 		val = min + g.rand.Float64()*(max-min)
-	} else if min != 0 {
+	} else if hasMin {
 		val = min + g.rand.Float64()*100
-	} else if max != 0 {
+	} else if hasMax {
 		val = max - g.rand.Float64()*100
 	} else {
 		val = g.rand.Float64() * 100
@@ -645,70 +669,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// RefResolver resolves JSON references
-type RefResolver struct {
-	definitions map[string]*schema.Schema
-}
-
-// NewRefResolver creates a new reference resolver
-func NewRefResolver(defs map[string]*schema.Schema) *RefResolver {
-	return &RefResolver{
-		definitions: defs,
-	}
-}
-
-// AddDefinition adds a definition to the resolver
-func (r *RefResolver) AddDefinition(name string, s *schema.Schema) {
-	if r.definitions == nil {
-		r.definitions = make(map[string]*schema.Schema)
-	}
-	r.definitions[name] = s
-}
-
-// Resolve resolves a JSON reference
-func (r *RefResolver) Resolve(ref string) (*schema.Schema, error) {
-	ref = strings.TrimPrefix(ref, "#/")
-	parts := strings.Split(ref, "/")
-
-	var current interface{} = r.definitions
-	for _, part := range parts {
-		part = strings.ReplaceAll(part, "~1", "/")
-		part = strings.ReplaceAll(part, "~0", "~")
-
-		switch v := current.(type) {
-		case map[string]*schema.Schema:
-			if schema, ok := v[part]; ok {
-				current = schema
-			} else {
-				return nil, fmt.Errorf("reference not found: %s", ref)
-			}
-		case *schema.Schema:
-			if part == "properties" {
-				current = v.Properties
-			} else if part == "items" {
-				current = v.Items
-			} else if strings.HasPrefix(part, "definitions/") || strings.HasPrefix(part, "$defs/") {
-				name := strings.TrimPrefix(part, "definitions/")
-				name = strings.TrimPrefix(name, "$defs/")
-				if schema, ok := v.Definitions[name]; ok {
-					current = schema
-				} else if schema, ok := v.Defs[name]; ok {
-					current = schema
-				} else {
-					return nil, fmt.Errorf("definition not found: %s", name)
-				}
-			} else {
-				return nil, fmt.Errorf("cannot navigate into schema: %s", part)
-			}
-		default:
-			return nil, fmt.Errorf("invalid reference path: %s", ref)
-		}
-	}
-
-	if schema, ok := current.(*schema.Schema); ok {
-		return schema, nil
-	}
-	return nil, fmt.Errorf("reference does not resolve to a schema: %s", ref)
 }
