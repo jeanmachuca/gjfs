@@ -193,17 +193,22 @@ func generatorOpts(seed int64, strictMode bool, sch *schema.Schema) []generator.
 	if seed != 0 {
 		opts = append(opts, generator.WithSeed(seed))
 	}
-	if len(sch.Definitions) > 0 || len(sch.Defs) > 0 {
-		defs := make(map[string]*schema.Schema)
-		for k, v := range sch.Definitions {
-			defs[k] = v
-		}
-		for k, v := range sch.Defs {
-			defs[k] = v
-		}
+	defs := collectDefinitions(sch)
+	if len(defs) > 0 {
 		opts = append(opts, generator.WithDefinitions(defs))
 	}
 	return opts
+}
+
+func collectDefinitions(sch *schema.Schema) map[string]*schema.Schema {
+	defs := make(map[string]*schema.Schema)
+	for k, v := range sch.Definitions {
+		defs[k] = v
+	}
+	for k, v := range sch.Defs {
+		defs[k] = v
+	}
+	return defs
 }
 
 func generateToolManifest(sch *schema.Schema, seed int64, strictMode bool, outputFile string) {
@@ -213,9 +218,22 @@ func generateToolManifest(sch *schema.Schema, seed int64, strictMode bool, outpu
 		os.Exit(1)
 	}
 
+	// Collect root-level definitions so they're available for $ref resolution in tool schemas
+	rootDefs := collectDefinitions(sch)
+	baseOpts := []generator.GeneratorOption{
+		generator.WithStrictMode(strictMode),
+	}
+	if seed != 0 {
+		baseOpts = append(baseOpts, generator.WithSeed(seed))
+	}
+	if len(rootDefs) > 0 {
+		baseOpts = append(baseOpts, generator.WithDefinitions(rootDefs))
+	}
+
 	result := make(map[string]interface{})
 	for _, entry := range entries {
-		gen := generator.NewGenerator(generatorOpts(seed, strictMode, entry.Schema)...)
+		opts := append([]generator.GeneratorOption{}, baseOpts...)
+		gen := generator.NewGenerator(opts...)
 		val, err := gen.Generate(entry.Schema)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to generate for %s %s: %v\n", entry.ToolName, entry.Kind, err)
