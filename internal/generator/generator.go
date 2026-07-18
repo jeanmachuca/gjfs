@@ -528,13 +528,11 @@ func (g *Generator) generateObject(s *schema.Schema, visitedRefs map[string]bool
 	if !g.requiredOnly && !g.strictMode {
 		for propName, propSchema := range s.Properties {
 			if _, exists := result[propName]; !exists {
-				if g.rand.Float32() > 0.3 {
-					val, err := g.generateValue(propSchema, visitedRefs)
-					if err != nil {
-						return nil, err
-					}
-					result[propName] = val
+				val, err := g.generateValue(propSchema, visitedRefs)
+				if err != nil {
+					return nil, err
 				}
+				result[propName] = val
 			}
 		}
 	}
