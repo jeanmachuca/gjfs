@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Unique user identifier"
+    },
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 30,
+      "pattern": "^[a-zA-Z0-9_]+$",
+      "description": "Unique username"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "User's email address"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Full name"
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150,
+      "description": "Age in years"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the user is active"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["admin", "user", "moderator", "guest"],
+      "default": "user",
+      "description": "User role"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "User tags"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "loginCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "preferences": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["id", "username", "email"],
+  "additionalProperties": false
+}

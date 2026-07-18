@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product",
+  "type": "object",
+  "required": ["id", "name", "price", "category"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique product identifier"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Product name"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "Product description"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "multipleOf": 0.01,
+      "description": "Price in USD"
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["USD", "EUR", "GBP", "JPY"],
+      "default": "USD"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["electronics", "clothing", "books", "home", "sports", "toys"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "dimensions": {
+      "type": "object",
+      "properties": {
+        "width": {"type": "number", "minimum": 0},
+        "height": {"type": "number", "minimum": 0},
+        "depth": {"type": "number", "minimum": 0},
+        "unit": {"type": "string", "enum": ["cm", "in", "m"]}
+      },
+      "required": ["width", "height", "depth", "unit"]
+    },
+    "weight": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Weight in kg"
+    },
+    "inStock": {
+      "type": "boolean",
+      "default": true
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "userId": {"type": "string", "format": "uuid"},
+          "rating": {"type": "integer", "minimum": 1, "maximum": 5},
+          "comment": {"type": "string", "maxLength": 1000},
+          "date": {"type": "string", "format": "date-time"}
+        },
+        "required": ["userId", "rating", "date"]
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z_]+$": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
